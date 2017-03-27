@@ -1,0 +1,12 @@
+C:\Users\dusty\Documents\New folder\TDIN\Client\bin\Debug\Client.exe.config
+C:\Users\dusty\Documents\New folder\TDIN\Client\bin\Debug\Client.exe
+C:\Users\dusty\Documents\New folder\TDIN\Client\bin\Debug\Client.pdb
+C:\Users\dusty\Documents\New folder\TDIN\Client\bin\Debug\Shared.dll
+C:\Users\dusty\Documents\New folder\TDIN\Client\bin\Debug\Shared.pdb
+C:\Users\dusty\Documents\New folder\TDIN\Client\obj\Debug\Client.csprojResolveAssemblyReference.cache
+C:\Users\dusty\Documents\New folder\TDIN\Client\obj\Debug\Client.ChatWindow.resources
+C:\Users\dusty\Documents\New folder\TDIN\Client\obj\Debug\Client.LoginWindow.resources
+C:\Users\dusty\Documents\New folder\TDIN\Client\obj\Debug\Client.MainWindow.resources
+C:\Users\dusty\Documents\New folder\TDIN\Client\obj\Debug\Client.csproj.GenerateResource.Cache
+C:\Users\dusty\Documents\New folder\TDIN\Client\obj\Debug\Client.exe
+C:\Users\dusty\Documents\New folder\TDIN\Client\obj\Debug\Client.pdb

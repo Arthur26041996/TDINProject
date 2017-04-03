@@ -1,20 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Shared
 {
     [Serializable]
-    public class User
+    public class User : IEquatable<User>
     {
         private string name;
         private string nick;
         private string pass;
         private Status status;
-        private IPEndPoint endpoint;
         
         public string Name
         {
@@ -68,19 +62,6 @@ namespace Shared
             }
         }
 
-        public IPEndPoint Endpoint
-        {
-            get
-            {
-                return endpoint;
-            }
-
-            set
-            {
-                endpoint = value;
-            }
-        }
-
         public User(string name, string nick, string pass)
         {
             this.Name = name;
@@ -95,6 +76,21 @@ namespace Shared
             this.nick = nick;
             this.pass = pass;
             this.status = status;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as User);
+        }
+
+        public bool Equals(User user) 
+        {
+            return this.Nick == user.Nick;
+        }
+
+        public override int GetHashCode()
+        {
+            return this.Nick.GetHashCode();
         }
     }
 }

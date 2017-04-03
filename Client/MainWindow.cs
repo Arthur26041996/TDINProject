@@ -12,17 +12,22 @@ namespace Client
     {
         IBroker broker;
         BrokerIntermediate brokerIntermediate;
-        User user;
+        Messenger messenger;
+        User self;
+        int port;
         Dictionary<User, IPEndPoint> onlineUsers;
         ChatWindow chatWindow;
 
-        public MainWindow(User user)
+        public MainWindow(User user, int port)
         {
+            //intermediate to handle notifications of updates
             brokerIntermediate = new BrokerIntermediate();
             brokerIntermediate.UpdateOnlineUsers += OnUpdateOnlineUsers;
+            //remote object
             broker = (IBroker)GetRemote.New(typeof(IBroker));
             broker.UpdateOnlineUsers += brokerIntermediate.FireUpdateOnlineUsers;
-            this.user = user;
+            this.self = user;
+            this.port = port;
             InitializeComponent();
             this.textBox1.Text = user.Name;
             this.comboBox1.SelectedIndex = this.comboBox1.Items.IndexOf(user.Status);
@@ -34,7 +39,10 @@ namespace Client
             this.button3.Click += new System.EventHandler(this.Logout);
             this.textBox1.TextChanged += new System.EventHandler(this.ChangeName);
             this.FormClosing += new FormClosingEventHandler(this.CloseWindow);
-            chatWindow = new ChatWindow(user, onlineUsers);
+            chatWindow = new ChatWindow(self, port);
+            messenger = (Messenger)RemotingServices.Connect(typeof(Messenger), "tcp://localhost:" + port + "/Messenger");
+            messenger.ReceivedRequest += OnReceivedRequest;
+            messenger.ReceivedMessage += OnReceivedMessage;
         }
 
         public override object InitializeLifetimeService()
@@ -44,75 +52,153 @@ namespace Client
 
         private void RequestConvo(object sender, EventArgs e)
         {
-
-            chatWindow.Show();
-            /*
             try
             {
-                String nickDestination = onlineUsers[this.dataGridView1.CurrentCell.RowIndex].Nick;
-                if (nickDestination != null && nickDestination != "" && nickDestination != user.Nick)
+                KeyValuePair<User, IPEndPoint> keyVal = onlineUsers.ElementAt(this.dataGridView1.CurrentCell.RowIndex);
+                if (keyVal.Key.Nick != null && keyVal.Key.Nick != "" && keyVal.Key.Nick != self.Nick)
                 {
-                    chatWindow.Show();
-                    //sbroker.RequestConvo(user.Nick, nickDestination, chatWindow.PrepareNewConvo(user.Endpoint));
+                    if (chatWindow.ChatStarted(keyVal.Key.Nick))
+                    {
+                        chatWindow.Show();
+                        //chatWindow.TabControl1.SelectTab(nickDestination);
+                    }
+                    else
+                    {
+                        IMessenger iMessenger = (IMessenger)RemotingServices.Connect(typeof(IMessenger), Util.URL(keyVal.Value));
+                        if (iMessenger.ProcessRequest(self))
+                        {
+                            chatWindow.NewTab(self, keyVal.Key, keyVal.Value);
+                            chatWindow.Show();
+                        }
+                        else
+                        {
+                            MessageBox.Show(keyVal.Key.Nick + " refused your request", "Refused", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
                 }
             }
-            catch { }
-            */
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error Send Request");
+            }
+        }
+
+        private Boolean OnReceivedRequest(User pair)
+        {
+            try
+            {
+                DialogResult result = MessageBox.Show(pair.Name + " wants to start a chat with you. Accept?", "New Request", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (result == DialogResult.Yes)
+                {
+                    IPEndPoint pairEndPoint = onlineUsers[pair];
+                    this.BeginInvoke((Action)(() =>
+                    {
+                        chatWindow.NewTab(self, pair, pairEndPoint);
+                        chatWindow.Show();
+                    }));
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error Request");
+                return false;
+            }
+        }
+
+        public void OnReceivedMessage(User pair, String message)
+        {
+                this.BeginInvoke((Action)(() =>
+                {
+                    chatWindow.NewMessage(pair.Nick, message);
+                }));
         }
 
         private void Logout(object sender, EventArgs e)
         {
             //chatWindow.Disconnect();
             broker.UpdateOnlineUsers -= brokerIntermediate.FireUpdateOnlineUsers;
-            broker.Logout(user.Nick);
+            broker.Logout(self.Nick);
             Application.Exit();
         }
 
         private void ChangeStatus(object sender, EventArgs e)
         {
-            broker.UpdateUserDetails(null, user.Nick, null, (Status)Enum.Parse(typeof(Status), this.comboBox1.SelectedItem.ToString()), null);
+            try
+            {
+                broker.UpdateUserDetails(null, self.Nick, null, (Status)Enum.Parse(typeof(Status), this.comboBox1.SelectedItem.ToString()), null);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error Change Status");
+            }
         }
 
         private void ChangeName(object sender, EventArgs e)
         {
-            broker.UpdateUserDetails(this.textBox1.Text, user.Nick, null, user.Status, null);
+            try
+            {
+                broker.UpdateUserDetails(this.textBox1.Text, self.Nick, null, self.Status, null);
+            }
+            catch (Exception ex)
+            {
+
+                MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error Change Name");
+            }
         }
 
         private void UpdateUserList()
         {
-            this.dataGridView1.Rows.Clear();
-            if (onlineUsers.Count > 1)
+            try
             {
-                this.dataGridView1.Rows.Add(onlineUsers.Count - 1);
+                //this.dataGridView1.DataSource = null;
+                this.dataGridView1.Rows.Clear();
+                if (onlineUsers.Count > 1)
+                {
+                    this.dataGridView1.Rows.Add(onlineUsers.Count - 1);
+                }
+                for (int i = 0; i < onlineUsers.Count; i++)
+                {
+                    if (onlineUsers.ElementAt(i).Key.Nick != self.Nick)
+                    {
+                        this.dataGridView1.Rows[i].Cells[0].Value = onlineUsers.ElementAt(i).Key.Name + " (" + onlineUsers.ElementAt(i).Key.Nick + ")";
+                        this.dataGridView1.Rows[i].Cells[1].Value = onlineUsers.ElementAt(i).Key.Status;
+                    }
+                    else
+                    {
+                        this.dataGridView1.Rows[i].Cells[0].Value = "[" + onlineUsers.ElementAt(i).Key.Name + " (" + onlineUsers.ElementAt(i).Key.Nick + ")]";
+                        this.dataGridView1.Rows[i].Cells[1].Value = onlineUsers.ElementAt(i).Key.Status;
+                    }
+                }
             }
-            for (int i = 0; i < onlineUsers.Count; i++)
+            catch (Exception ex)
             {
-                if (onlineUsers.ElementAt(i).Key.Nick != user.Nick)
-                {
-                    this.dataGridView1.Rows[i].Cells[0].Value = onlineUsers.ElementAt(i).Key.Name + " (" + onlineUsers.ElementAt(i).Key.Nick + ")";
-                    this.dataGridView1.Rows[i].Cells[1].Value = onlineUsers.ElementAt(i).Key.Status;
-                }
-                else
-                {
-                    this.dataGridView1.Rows[i].Cells[0].Value = "[" + onlineUsers.ElementAt(i).Key.Name + " (" + onlineUsers.ElementAt(i).Key.Nick + ")]";
-                    this.dataGridView1.Rows[i].Cells[1].Value = onlineUsers.ElementAt(i).Key.Status;
-                }
+                MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error Update user list");
             }
         }
 
         public void OnUpdateOnlineUsers(Dictionary<User, IPEndPoint> onlineUsers)
         {
-            this.onlineUsers = onlineUsers;
-            this.chatWindow.OnlineUsers = onlineUsers;
-            this.chatWindow.CurrentRecipient = onlineUsers.ElementAt(0).Key;
-            UpdateUserList();
+            try
+            {
+                this.onlineUsers = onlineUsers;
+                UpdateUserList();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error update online users");
+            }
         }
 
         private void CloseWindow(object sender, EventArgs e)
         {
             //chatWindow.Disconnect();
             broker.UpdateOnlineUsers -= brokerIntermediate.FireUpdateOnlineUsers;
-            broker.Logout(user.Nick);
+            broker.Logout(self.Nick);
             Application.Exit();
         }
     }

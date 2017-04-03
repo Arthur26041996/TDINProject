@@ -1,0 +1,8 @@
+C:\Users\dusty\Documents\New folder\TDIN\Server\bin\Release\Server.exe.config
+C:\Users\dusty\Documents\New folder\TDIN\Server\bin\Release\Server.exe
+C:\Users\dusty\Documents\New folder\TDIN\Server\bin\Release\Server.pdb
+C:\Users\dusty\Documents\New folder\TDIN\Server\bin\Release\Shared.dll
+C:\Users\dusty\Documents\New folder\TDIN\Server\bin\Release\Shared.pdb
+C:\Users\dusty\Documents\New folder\TDIN\Server\obj\Release\Server.csprojResolveAssemblyReference.cache
+C:\Users\dusty\Documents\New folder\TDIN\Server\obj\Release\Server.exe
+C:\Users\dusty\Documents\New folder\TDIN\Server\obj\Release\Server.pdb

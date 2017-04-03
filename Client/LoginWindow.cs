@@ -1,15 +1,6 @@
 ﻿using Shared;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
 using System.Net;
-using System.Net.Sockets;
-using System.Runtime.Remoting;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Client
@@ -45,17 +36,18 @@ namespace Client
                 else if ((user = broker.Login(textBox1.Text, textBox2.Text, new IPEndPoint(Util.LocalIPAddress(), port))) != null)
                 {
                     this.Hide();
-                    (new MainWindow(user)).Show();
+                    (new MainWindow(user, port)).Show();
                 }
                 else
                 {
-                    MessageBox.Show("Invalid nickname or password. If logged in elsewhere please log out first.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Invalid nickname or password.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
-            catch
+            catch(Exception ex)
             {
                 //broker.Logout(textBox1.Text);
                 user = null;
+                Console.WriteLine(ex.Message + " - "+ex.StackTrace);
                 MessageBox.Show("Error contacting the server", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }

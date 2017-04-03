@@ -41,31 +41,47 @@ namespace Server
 
         public User Login(string nick, string pass, IPEndPoint endpoint)
         {
+            try { 
             foreach (User user in users)
             {
-                if (user.Nick.Equals(nick) && user.Pass.Equals(pass) && !onlineUsers.ContainsKey(user))
+                if (user.Nick.Equals(nick) && user.Pass.Equals(pass))
                 {
-                    user.Endpoint = endpoint;
+                    if (onlineUsers.ContainsKey(user))
+                    {
+                        Logout(user.Nick);
+                    }
                     onlineUsers.Add(user, endpoint);
                     UpdateOnlineUsers?.Invoke(onlineUsers);
                     return user;
                 }
             }
             return null;
+            }
+            catch
+            {
+                Console.WriteLine("\nerror login");
+                return null;
+            }
         }
 
         public void Logout(string nick)
         {
-            foreach (KeyValuePair<User, IPEndPoint> user in onlineUsers)
+            try
             {
-                if (user.Key.Nick.Equals(nick))
+                foreach (User user in onlineUsers.Keys)
                 {
-                    onlineUsers.Remove(user.Key);
-                    UpdateOnlineUsers?.Invoke(GetOnlineUsers());
-                    return;
+                    if (user.Nick.Equals(nick))
+                    {
+                        onlineUsers.Remove(user);
+                        UpdateOnlineUsers?.Invoke(GetOnlineUsers());
+                        return;
+                    }
                 }
             }
-            return;
+            catch
+            {
+                Console.WriteLine("\nerror logout");
+            }
         }
 
         public Boolean SignUp(string name, string nick, string pass)
@@ -83,42 +99,51 @@ namespace Server
 
         public Dictionary<User, IPEndPoint> GetOnlineUsers()
         {
-            Dictionary<User, IPEndPoint> list = new Dictionary<User, IPEndPoint>();
-            foreach (KeyValuePair<User, IPEndPoint> user in onlineUsers)
+            try
             {
-                list.Add(new User(user.Key.Name, user.Key.Nick, null, user.Key.Status), user.Value);
+                Dictionary<User, IPEndPoint> list = new Dictionary<User, IPEndPoint>();
+                foreach (KeyValuePair<User, IPEndPoint> user in onlineUsers)
+                {
+                    list.Add(new User(user.Key.Name, user.Key.Nick, "", user.Key.Status), user.Value);
+                }
+                return list;
             }
-            return list;
+            catch
+            {
+                Console.WriteLine("\nerror get online");
+                return null;
+            }
         }
 
         public void UpdateUserDetails(string name, string nick, string pass, Status status, IPEndPoint endpoint)
         {
-            foreach (User user in users)
-            {
-                if (user.Nick.Equals(nick))
+            try{
+                foreach (User user in users)
                 {
-                    if (name != null)
+                    if (user.Nick.Equals(nick))
                     {
-                        user.Name = name;
-                    }
-                    if (pass != null)
-                    {
-                        user.Pass = pass;
-                    }
+                        if (name != null)
+                        {
+                            user.Name = name;
+                        }
+                        if (pass != null)
+                        {
+                            user.Pass = pass;
+                        }
 
-                    user.Status = status;
+                        user.Status = status;
 
-                    if (endpoint != null)
-                    {
-                        user.Endpoint = endpoint;
+                        if (UpdateOnlineUsers != null)
+                        {
+                            UpdateOnlineUsers(GetOnlineUsers());
+                        }
+                        return;
                     }
-
-                    if (UpdateOnlineUsers != null)
-                    {
-                        UpdateOnlineUsers(GetOnlineUsers());
-                    }
-                    return;
                 }
+            }
+            catch
+            {
+                Console.WriteLine("\nerror update user details");
             }
         }
     }

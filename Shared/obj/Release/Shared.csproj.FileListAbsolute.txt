@@ -1,0 +1,4 @@
+C:\Users\dusty\Documents\New folder\TDIN\Shared\bin\Release\Shared.dll
+C:\Users\dusty\Documents\New folder\TDIN\Shared\bin\Release\Shared.pdb
+C:\Users\dusty\Documents\New folder\TDIN\Shared\obj\Release\Shared.dll
+C:\Users\dusty\Documents\New folder\TDIN\Shared\obj\Release\Shared.pdb

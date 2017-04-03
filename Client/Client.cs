@@ -31,7 +31,7 @@ namespace Client
             int port = new Uri(data.ChannelUris[0]).Port;                            // get the port
 
             RemotingConfiguration.Configure("Client.exe.config", false);             // register the server objects
-            RemotingConfiguration.RegisterWellKnownServiceType(typeof(Convo), "Message", WellKnownObjectMode.Singleton);  // register my remote object for service
+            RemotingConfiguration.RegisterWellKnownServiceType(typeof(Messenger), "Messenger", WellKnownObjectMode.Singleton);  // register my remote object for service
             // Convo convo = (Convo)RemotingServices.Connect(typeof(Convo), "tcp://localhost:"+port+"/Message");
             
             Application.EnableVisualStyles();
@@ -41,45 +41,35 @@ namespace Client
 
     }
 
-    class GetRemote
+    public delegate Boolean ReceivedRequestHandler(User pair);
+    public delegate void ReceivedMessageHandler(User from, String message);
+
+    public interface IMessenger
     {
-        private static IDictionary wellKnownTypes;
-
-        public static object New(Type type)
-        {
-            if (wellKnownTypes == null)
-                InitTypeCache();
-            WellKnownClientTypeEntry entry = (WellKnownClientTypeEntry)wellKnownTypes[type];
-            if (entry == null)
-                throw new RemotingException("Type not found!");
-            return Activator.GetObject(type, entry.ObjectUrl);
-        }
-
-        public static void InitTypeCache()
-        {
-            Hashtable types = new Hashtable();
-            foreach (WellKnownClientTypeEntry entry in RemotingConfiguration.GetRegisteredWellKnownClientTypes())
-            {
-                if (entry.ObjectType == null)
-                    throw new RemotingException("A configured type could not be found!");
-                types.Add(entry.ObjectType, entry);
-            }
-            wellKnownTypes = types;
-        }
+        void ProcessMessage(User user, String message);
+        Boolean ProcessRequest(User pair);
     }
 
-    public class Util
+    public class Messenger : MarshalByRefObject, IMessenger
     {
-        public static IPAddress LocalIPAddress()
+        public event ReceivedMessageHandler ReceivedMessage;
+        public event ReceivedRequestHandler ReceivedRequest;
+
+        public override object InitializeLifetimeService()
         {
-            if (!System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
-            {
-                return null;
-            }
+            Console.WriteLine("[Broker]: InitilizeLifetimeService");
+            return null;
+        }
 
-            IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+        public Boolean ProcessRequest(User pair)
+        {
+            return ReceivedRequest(pair);
+        }
 
-            return host.AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
+        public void ProcessMessage(User user, String message)
+        {
+            ReceivedMessage(user, message);
         }
     }
+    
 }

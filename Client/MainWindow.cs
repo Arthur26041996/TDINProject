@@ -60,7 +60,6 @@ namespace Client
                     if (chatWindow.ChatStarted(keyVal.Key.Nick))
                     {
                         chatWindow.Show();
-                        //chatWindow.TabControl1.SelectTab(nickDestination);
                     }
                     else
                     {
@@ -79,7 +78,7 @@ namespace Client
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error Send Request");
+                Console.WriteLine(ex.Message + " -- " + ex.StackTrace);
             }
         }
 
@@ -105,7 +104,7 @@ namespace Client
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error Request");
+                Console.WriteLine(ex.Message + " -- " + ex.StackTrace);
                 return false;
             }
         }
@@ -114,13 +113,20 @@ namespace Client
         {
                 this.BeginInvoke((Action)(() =>
                 {
-                    chatWindow.NewMessage(pair.Nick, message);
+                    if (!chatWindow.ChatStarted(pair.Nick))
+                    {
+                        IPEndPoint pairEndPoint = onlineUsers[pair];
+                        chatWindow.NewTab(self, pair, pairEndPoint);
+                    }
+                        chatWindow.NewMessage(pair, message);
+                    chatWindow.Show();
                 }));
         }
 
         private void Logout(object sender, EventArgs e)
         {
-            //chatWindow.Disconnect();
+            messenger.ReceivedRequest -= OnReceivedRequest;
+            messenger.ReceivedMessage -= OnReceivedMessage;
             broker.UpdateOnlineUsers -= brokerIntermediate.FireUpdateOnlineUsers;
             broker.Logout(self.Nick);
             Application.Exit();
@@ -134,7 +140,7 @@ namespace Client
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error Change Status");
+                Console.WriteLine(ex.Message + " -- " + ex.StackTrace);
             }
         }
 
@@ -147,7 +153,7 @@ namespace Client
             catch (Exception ex)
             {
 
-                MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error Change Name");
+                Console.WriteLine(ex.Message + " -- " + ex.StackTrace);
             }
         }
 
@@ -155,8 +161,7 @@ namespace Client
         {
             try
             {
-                //this.dataGridView1.DataSource = null;
-                this.dataGridView1.Rows.Clear();
+               this.dataGridView1.Rows.Clear();
                 if (onlineUsers.Count > 1)
                 {
                     this.dataGridView1.Rows.Add(onlineUsers.Count - 1);
@@ -177,7 +182,7 @@ namespace Client
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error Update user list");
+                Console.WriteLine(ex.Message + " -- " + ex.StackTrace);
             }
         }
 
@@ -187,16 +192,21 @@ namespace Client
             {
                 this.onlineUsers = onlineUsers;
                 UpdateUserList();
+                this.BeginInvoke((Action)(() =>
+                {
+                    chatWindow.UpdateUsers(onlineUsers);
+                }));
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error update online users");
+                Console.WriteLine(ex.Message + " -- " + ex.StackTrace);
             }
         }
 
         private void CloseWindow(object sender, EventArgs e)
         {
-            //chatWindow.Disconnect();
+            messenger.ReceivedRequest -= OnReceivedRequest;
+            messenger.ReceivedMessage -= OnReceivedMessage;
             broker.UpdateOnlineUsers -= brokerIntermediate.FireUpdateOnlineUsers;
             broker.Logout(self.Nick);
             Application.Exit();

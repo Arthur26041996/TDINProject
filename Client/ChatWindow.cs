@@ -1,6 +1,7 @@
 ﻿using Shared;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Net;
 using System.Runtime.Remoting;
 using System.Windows.Forms;
@@ -10,16 +11,12 @@ namespace Client
     public partial class ChatWindow : Form
     {
         User self;
-        Messenger messenger;
 
         public ChatWindow(User self, int port)
         {
             this.self = self;
             InitializeComponent();
             this.FormClosing += new FormClosingEventHandler(this.CloseWindow);
-            //own remote object
-            messenger = (Messenger)RemotingServices.Connect(typeof(Messenger), "tcp://localhost:" + port + "/Messenger");
-            //messenger.ReceivedRequest += OnReceivedRequest;
         }
 
         public Boolean ChatStarted(string nick)
@@ -29,86 +26,45 @@ namespace Client
 
         public void NewTab(User self, User pair, IPEndPoint pairEndPoint)
         {
-            //this.BeginInvoke((Action)(() =>
-            //{
-            //    this.tabControl1.TabPages.Add(new ChatTab(self, this.messenger, pair, pairEndPoint));
-            //}));
-            this.tabControl1.TabPages.Add(new ChatTab(self, this.messenger, pair, pairEndPoint));
+            this.tabControl1.TabPages.Add(new ChatTab(self, pair, pairEndPoint));
         }
 
-        public void NewMessage(String nick, String message)
+        public void NewMessage(User pair, String message)
         {
             try
             {
-                ((ChatTab)this.tabControl1.TabPages[tabControl1.TabPages.IndexOfKey(nick)]).NewMessage(message);
+                String formatted = String.Format("{0,20} | " + message, pair.Name);
+                ((ChatTab)this.tabControl1.TabPages[tabControl1.TabPages.IndexOfKey(pair.Nick)]).NewMessage(formatted);
             }
             catch { }
         }
 
-        public Boolean OnReceivedRequest(User pair, IPEndPoint pairEndPoint)
+        public void UpdateUsers(Dictionary<User, IPEndPoint> onlineUsers)
         {
-            try
+            foreach (User user in onlineUsers.Keys)
             {
-                DialogResult result = MessageBox.Show(pair.Name + " wants to start a chat with you. Accept?", "New Request", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (result == DialogResult.Yes)
+                if (self.Equals(user))
                 {
-                    this.tabControl1.TabPages.Add(new ChatTab(self, this.messenger, pair, pairEndPoint));
-                    //this.Show();
-                    return true;
-                }
-                else
-                {
-                    return false;
+                    self = user;
                 }
             }
-            catch (Exception ex)
+            foreach (User user in onlineUsers.Keys)
             {
-                MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error Request");
-                return false;
+                if (this.tabControl1.TabPages.ContainsKey(user.Nick))
+                {
+                    ((ChatTab)this.tabControl1.TabPages[tabControl1.TabPages.IndexOfKey(user.Nick)]).UpdatePair(user, onlineUsers[user]);
+                    ((ChatTab)this.tabControl1.TabPages[tabControl1.TabPages.IndexOfKey(user.Nick)]).UpdateSelf(this.self);
+                }
             }
+            for(int i=0; i< this.tabControl1.TabCount; i++)
+            {
+                if (!onlineUsers.ContainsKey(((ChatTab)this.tabControl1.TabPages[i]).GetPair()))
+                {
+                    ((ChatTab)this.tabControl1.TabPages[i]).Disconnect();
+                }
+            }
+            this.Refresh();
         }
-
-        //public void OnReceivedMessage(User pair, String message)
-        //{
-        //    try
-        //    {
-        //        int index;
-        //        if (this.InvokeRequired)
-        //        {
-        //            this.BeginInvoke((MethodInvoker)delegate ()
-        //            {
-        //                index = tabControl1.TabPages.IndexOfKey(pair.Nick);
-        //                if (!this.Visible)
-        //                {
-        //                    tabControl1.SelectTab(index);
-        //                    this.Show();
-        //                }
-        //        ((ChatTab)tabControl1.TabPages[index]).AddMessage("\n\n" + pair.Name + " : " + message);
-        //            });
-        //        }
-        //        else
-        //        {
-        //            index = tabControl1.TabPages.IndexOfKey(pair.Nick);
-        //            if (!this.Visible)
-        //            {
-        //                tabControl1.SelectTab(index);
-        //                this.Show();
-        //            }
-        //        ((ChatTab)tabControl1.TabPages[index]).AddMessage("\n\n" + pair.Name + " : " + message);
-        //        }
-        //        //int index = tabControl1.TabPages.IndexOfKey(pair.Nick);
-        //        //if (!this.Visible)
-        //        //{
-        //        //    tabControl1.SelectTab(index);
-        //        //    this.Show();
-        //        //}
-        //        //((ChatTab)tabControl1.TabPages[index]).AddMessage("\n\n" + pair.Name + " : " + message);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error Message "+self.Name);
-        //    }
-        //}
 
         private void CloseWindow(object sender, FormClosingEventArgs e)
         {
@@ -125,16 +81,14 @@ namespace Client
         User self, pair;
         IPEndPoint pairEndPoint;
         IMessenger iMessenger;
-        Messenger messenger;
 
         private System.Windows.Forms.SplitContainer splitContainer1;
         private System.Windows.Forms.RichTextBox richTextBox1;
         private System.Windows.Forms.RichTextBox richTextBox2;
-        
-        public ChatTab(User self, Messenger messenger, User dest, IPEndPoint destEndPoint)
+
+        public ChatTab(User self, User dest, IPEndPoint destEndPoint)
         {
             this.self = self;
-            this.messenger = messenger;
             this.pair = dest;
             this.pairEndPoint = destEndPoint;
             iMessenger = (IMessenger)RemotingServices.Connect(typeof(IMessenger), Util.URL(pairEndPoint));
@@ -183,6 +137,9 @@ namespace Client
             this.richTextBox1.Size = new System.Drawing.Size(893, 481);
             this.richTextBox1.TabIndex = 0;
             this.richTextBox1.Text = "";
+            this.richTextBox1.Multiline = true;
+            this.richTextBox1.ReadOnly = true;
+            this.richTextBox1.Font = new Font(FontFamily.GenericMonospace, this.richTextBox1.Font.Size);
             // 
             // richTextBox2
             // 
@@ -203,23 +160,33 @@ namespace Client
             #endregion
 
             this.richTextBox2.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.SendMessage);
-            //messenger.ReceivedMessage += OnReceivedMessage;
         }
 
         private void SendMessage(object sender, System.Windows.Forms.KeyPressEventArgs e)
         {
             try
             {
-                if (e.KeyChar == (char)Keys.Return && richTextBox2.Text != "")
+                if (e.KeyChar == (char)Keys.Return)
                 {
-                    iMessenger.ProcessMessage(self, richTextBox2.Text);
-                    richTextBox1.AppendText("\n me :" + richTextBox2.Text);
+                    if(pairEndPoint == null)
+                    {
+                        MessageBox.Show(pair.Name + " is disconnected.");
+                    }
+                    else if (richTextBox2.Text == "" || richTextBox2.Text == "\n")
+                    {
+                    }
+                    else
+                    {
+                        String formatted = String.Format("{0,20} | " + richTextBox2.Text, "[" + self.Name + "]");
+                        iMessenger.ProcessMessage(self, richTextBox2.Text);
+                        richTextBox1.AppendText(formatted);
+                    }
                     richTextBox2.Clear();
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message + " - " + ex.StackTrace, "Error Send Message");
+                Console.WriteLine(ex.Message + " -- " + ex.StackTrace);
             }
         }
 
@@ -228,12 +195,27 @@ namespace Client
             richTextBox1.AppendText(message);
         }
 
-        //public void OnReceivedMessage(User pair, String message)
-        //{
-        //    if (this.pair.Equals(pair))
-        //    {
-        //        richTextBox1.AppendText(message);
-        //    }
-        //}
+        public void UpdatePair(User pair, IPEndPoint pairEndPoint)
+        {
+            this.pair = pair;
+            this.pairEndPoint = pairEndPoint;
+            this.Text = pair.Name;
+            iMessenger = (IMessenger)RemotingServices.Connect(typeof(IMessenger), Util.URL(pairEndPoint));
+        }
+
+        public void UpdateSelf(User self)
+        {
+            this.self = self;
+        }
+
+        public User GetPair()
+        {
+            return pair;
+        }
+        public void Disconnect()
+        {
+            pairEndPoint = null;
+            iMessenger = null;
+        }
     }
 }

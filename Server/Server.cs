@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.Remoting;
 using System.Net;
+using System.IO;
 
 namespace Server
 {
@@ -27,10 +28,11 @@ namespace Server
         {
             onlineUsers = new Dictionary<User, IPEndPoint>();
             users = new List<User>();
-            //testing
-            users.Add(new User("q", "q", "q"));
-            users.Add(new User("w", "w", "w"));
-            users.Add(new User("e", "e", "e"));
+            ////testing
+            //users.Add(new User("q", "q", "q"));
+            //users.Add(new User("w", "w", "w"));
+            //users.Add(new User("e", "e", "e"));
+            LoadUsers();
         }
 
         public override object InitializeLifetimeService()
@@ -39,27 +41,44 @@ namespace Server
             return null;
         }
 
-        public User Login(string nick, string pass, IPEndPoint endpoint)
+        private void LoadUsers()
         {
-            try { 
-            foreach (User user in users)
+            if (File.Exists("users.txt"))
             {
-                if (user.Nick.Equals(nick) && user.Pass.Equals(pass))
+                string[] lines = System.IO.File.ReadAllLines(@"users.txt");
+                foreach (String line in lines)
                 {
-                    if (onlineUsers.ContainsKey(user))
+                    if (line != "" && line != "\n")
                     {
-                        Logout(user.Nick);
+                        String[] tokens = line.Split(',');
+                        users.Add(new User(tokens[0], tokens[1], tokens[2]));
                     }
-                    onlineUsers.Add(user, endpoint);
-                    UpdateOnlineUsers?.Invoke(onlineUsers);
-                    return user;
                 }
             }
-            return null;
-            }
-            catch
+        }
+
+        public User Login(string nick, string pass, IPEndPoint endpoint)
+        {
+            try
             {
-                Console.WriteLine("\nerror login");
+                foreach (User user in users)
+                {
+                    if (user.Nick.Equals(nick) && user.Pass.Equals(pass))
+                    {
+                        if (onlineUsers.ContainsKey(user))
+                        {
+                            Logout(user.Nick);
+                        }
+                        onlineUsers.Add(user, endpoint);
+                        UpdateOnlineUsers?.Invoke(onlineUsers);
+                        return user;
+                    }
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message + " -- " + ex.StackTrace);
                 return null;
             }
         }
@@ -78,9 +97,9 @@ namespace Server
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                Console.WriteLine("\nerror logout");
+                Console.WriteLine(ex.Message + " - " + ex.StackTrace);
             }
         }
 
@@ -94,6 +113,7 @@ namespace Server
                 }
             }
             users.Add(new User(name, nick, pass));
+            System.IO.File.AppendAllText("users.txt", name + ',' + nick + ',' + pass + '\n');
             return true;
         }
 
@@ -108,16 +128,18 @@ namespace Server
                 }
                 return list;
             }
-            catch
+            catch (Exception ex)
             {
-                Console.WriteLine("\nerror get online");
+                Console.WriteLine(ex.Message + " - " + ex.StackTrace);
                 return null;
             }
         }
 
         public void UpdateUserDetails(string name, string nick, string pass, Status status, IPEndPoint endpoint)
         {
-            try{
+            try
+            {
+                File.Delete("users.txt");
                 foreach (User user in users)
                 {
                     if (user.Nick.Equals(nick))
@@ -137,13 +159,13 @@ namespace Server
                         {
                             UpdateOnlineUsers(GetOnlineUsers());
                         }
-                        return;
                     }
+                    System.IO.File.AppendAllText("users.txt", user.Name + ',' + user.Nick + ',' + user.Pass + '\n');
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                Console.WriteLine("\nerror update user details");
+                Console.WriteLine(ex.Message + " - " + ex.StackTrace);
             }
         }
     }

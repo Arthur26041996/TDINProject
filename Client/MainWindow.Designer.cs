@@ -1,4 +1,5 @@
 ﻿using Shared;
+using System.Windows.Forms;
 
 namespace Client
 {
@@ -86,6 +87,9 @@ namespace Client
             this.dataGridView1.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
             this.dataGridView1.Size = new System.Drawing.Size(271, 337);
             this.dataGridView1.TabIndex = 0;
+            this.dataGridView1.ReadOnly = true;
+            this.dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            this.dataGridView1.MultiSelect = false;
             // 
             // Column1
             // 

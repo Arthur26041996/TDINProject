@@ -32,7 +32,6 @@ namespace Client
 
             RemotingConfiguration.Configure("Client.exe.config", false);             // register the server objects
             RemotingConfiguration.RegisterWellKnownServiceType(typeof(Messenger), "Messenger", WellKnownObjectMode.Singleton);  // register my remote object for service
-            // Convo convo = (Convo)RemotingServices.Connect(typeof(Convo), "tcp://localhost:"+port+"/Message");
             
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);

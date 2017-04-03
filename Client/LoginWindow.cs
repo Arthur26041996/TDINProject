@@ -45,9 +45,8 @@ namespace Client
             }
             catch(Exception ex)
             {
-                //broker.Logout(textBox1.Text);
                 user = null;
-                Console.WriteLine(ex.Message + " - "+ex.StackTrace);
+                Console.WriteLine(ex.Message + " -- " + ex.StackTrace);
                 MessageBox.Show("Error contacting the server", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }

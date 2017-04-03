@@ -205,10 +205,14 @@ namespace Client
 
         private void CloseWindow(object sender, EventArgs e)
         {
-            messenger.ReceivedRequest -= OnReceivedRequest;
-            messenger.ReceivedMessage -= OnReceivedMessage;
-            broker.UpdateOnlineUsers -= brokerIntermediate.FireUpdateOnlineUsers;
-            broker.Logout(self.Nick);
+            try
+            {
+                messenger.ReceivedRequest -= OnReceivedRequest;
+                messenger.ReceivedMessage -= OnReceivedMessage;
+                broker.UpdateOnlineUsers -= brokerIntermediate.FireUpdateOnlineUsers;
+                broker.Logout(self.Nick);
+            }
+            catch { }
             Application.Exit();
         }
     }
